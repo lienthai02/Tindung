@@ -570,14 +570,15 @@
   // 4) Dán đè vào object FIREBASE_CONFIG bên dưới rồi lưu lại file này
   // Nếu để trống, app vẫn hoạt động bình thường và chỉ lưu trên máy này.
   // ====================================================================
-  const FIREBASE_CONFIG = {
-    apiKey: "",
-    authDomain: "",
-    projectId: "",
-    storageBucket: "",
-    messagingSenderId: "",
-    appId: ""
-  };
+  const firebaseConfig = {
+  apiKey: "AIzaSyBwMrTDBuZT9BZqXN8om0anPtEXN-zLRsY",
+  authDomain: "credit-86fd6.firebaseapp.com",
+  projectId: "credit-86fd6",
+  storageBucket: "credit-86fd6.firebasestorage.app",
+  messagingSenderId: "483989593810",
+  appId: "1:483989593810:web:d86a41c891eda1a4f6970b",
+  measurementId: "G-L2X338YW92"
+};
   const isFirebaseConfigured = () => !!(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId);
 
   let fbApp = null, fbAuth = null, fbDb = null, fbUser = null, userDocUnsub = null;
