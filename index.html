@@ -307,6 +307,34 @@
   }
   .swatch.sel{ border-color:var(--ink-900); }
 
+  /* Password field with show/hide toggle */
+  .pwd-wrap{ position:relative; }
+  .pwd-wrap input{ padding-right:38px !important; }
+  .pwd-toggle{
+    position:absolute; right:4px; top:50%; transform:translateY(-50%);
+    width:28px; height:28px; border:none; background:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--text-faint); border-radius:6px; padding:0;
+    transition:color .15s, background .15s;
+  }
+  .pwd-toggle:hover{ color:var(--gold); background:var(--surface-2); }
+  .pwd-toggle svg{ width:17px; height:17px; }
+  .remember-row{
+    display:flex; align-items:center; gap:7px; margin:-2px 0 12px;
+    font-size:12.5px; color:var(--text-dim); user-select:none; cursor:pointer;
+  }
+  .remember-row input[type="checkbox"]{
+    width:14px; height:14px; accent-color:var(--gold); cursor:pointer; margin:0;
+  }
+  .field-error{
+    display:none; align-items:center; gap:6px;
+    color:var(--rust); background:var(--rust-bg);
+    border:1px solid rgba(162,74,48,.25); border-radius:7px;
+    padding:8px 10px; font-size:12.5px; margin-bottom:6px; line-height:1.4;
+  }
+  .field-error.show{ display:flex; }
+  .field.err input{ border-color:var(--rust); }
+
   /* Stats / charts */
   .charts-grid{
     display:grid;
@@ -387,11 +415,56 @@
   }
   .status-pill.paid{ background:var(--sage-bg); color:var(--sage); border-color:rgba(74,115,87,.25); }
   .status-pill.unpaid{ background:var(--rust-bg); color:var(--rust); border-color:rgba(162,74,48,.25); }
-  .txn-del{
+  .txn-del,
+  .txn-edit{
     background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:17px; line-height:1;
     width:26px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center;
   }
   .txn-del:hover{ color:var(--rust); background:var(--rust-bg); }
+  .txn-edit:hover{ color:var(--gold); background:rgba(245,158,11,.12); }
+
+  /* Transaction menu (3-dot) */
+  .txn-menu-btn{
+    position:relative;
+    background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:18px; line-height:1;
+    width:26px; height:26px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+    padding:0; transition:color .15s, background .15s;
+  }
+  .txn-menu-btn:hover{ color:var(--text-dim); background:var(--surface-2); }
+  .txn-menu-dropdown{
+    position:absolute; right:0; top:100%; margin-top:4px; background:var(--surface);
+    border:1px solid var(--line); border-radius:8px;
+    box-shadow:0 4px 12px rgba(28,33,48,.2);
+    z-index:10; display:none; flex-direction:column; min-width:140px;
+    overflow:hidden;
+  }
+  .txn-menu-dropdown.open{ display:flex; }
+  .txn-menu-item{
+    background:none; border:none; width:100%; text-align:left; padding:10px 14px;
+    font-family:'Inter',sans-serif; font-size:13px; color:var(--text);
+    cursor:pointer; white-space:nowrap; transition:background .1s, color .1s;
+  }
+  .txn-menu-item:hover{ background:var(--surface-2); color:var(--text); }
+  .txn-menu-item.danger:hover{ background:var(--rust-bg); color:var(--rust); }
+
+  /* Date filter section */
+  .ledger-filter-row{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    margin:0 0 16px; padding:0;
+  }
+  .ledger-filter-row label{
+    font-size:11.5px; letter-spacing:.5px; text-transform:uppercase; color:var(--text-faint);
+    white-space:nowrap;
+  }
+  .date-filter-group{
+    display:flex; align-items:center; gap:8px;
+  }
+  .date-filter-select, .date-filter-input{
+    background:var(--surface); border:1px solid var(--line); border-radius:7px;
+    padding:8px 10px; color:var(--text); font-family:'Inter',sans-serif; font-size:13px;
+  }
+  .date-filter-select:focus, .date-filter-input:focus{ outline:none; border-color:var(--gold); }
+  .date-filter-input{ width:140px; }
 
   .empty-state{
     text-align:center; padding:50px 20px; color:var(--text-faint);
@@ -470,13 +543,13 @@
     <h2>Thống kê</h2>
   </div>
   <div id="stats-section">
+      <div class="chart-filter-row" id="chart-filter-row">
+      <label for="chart-month-filter">Lọc biểu đồ theo tháng</label>
+      <select id="chart-month-filter" class="month-select"></select>
+    </div>
     <div class="panel chart-panel">
       <h3>Chi tiêu theo tháng</h3>
       <canvas id="chart-monthly"></canvas>
-    </div>
-    <div class="chart-filter-row" id="chart-filter-row">
-      <label for="chart-month-filter">Lọc danh mục &amp; app theo tháng</label>
-      <select id="chart-month-filter" class="month-select"></select>
     </div>
     <div class="charts-grid">
       <div class="panel chart-panel">
@@ -498,6 +571,19 @@
     <div class="section-head-actions">
       <select id="ledger-month-filter" class="month-select hidden"></select>
       <button class="btn" id="show-txn-form">+ Thêm giao dịch</button>
+    </div>
+  </div>
+
+  <div id="ledger-filter-row" class="ledger-filter-row hidden">
+    <label>Lọc theo:</label>
+    <div class="date-filter-group">
+      <select id="ledger-date-filter" class="date-filter-select">
+        <option value="all">Tất cả</option>
+        <option value="month">Theo tháng</option>
+        <option value="date">Theo ngày cụ thể</option>
+      </select>
+      <select id="ledger-month-select" class="date-filter-select hidden"></select>
+      <input type="date" id="ledger-date-select" class="date-filter-input hidden" lang="vi-VN">
     </div>
   </div>
 
@@ -585,11 +671,11 @@
   let firebaseAvailable = false;
 
   const CARD_COLORS = [
-    'linear-gradient(135deg,#1b2333,#2a3550 55%,#3a4666)',
-    'linear-gradient(135deg,#2e2416,#4a3820 55%,#6b5228)',
-    'linear-gradient(135deg,#22201a,#3a3524 55%,#524a2f)',
-    'linear-gradient(135deg,#1e2b28,#2c433c 55%,#3b5c50)',
-    'linear-gradient(135deg,#2a1e22,#4a2b34 55%,#653a47)'
+    '#1e40af',
+    '#b45309',
+    '#3f6212',
+    '#0f766e',
+    '#a3134a'
   ];
 
   const CATEGORIES = [
@@ -618,12 +704,13 @@
     'Xanh SM',
     'Khác'
   ];
-  const APP_COLORS = ['#c99a3f','#2f5d5a','#a24a30','#4a7357','#8a6bab','#b5763c','#5b7fa6','#8a8f5c','#3fae6a','#9a9da8','#d9714a'];
+  const APP_COLORS = ['#3c4f76','#e93e9c','#0068f4','#ff6d00','#0075d7','#0f9d58','#ff6f1a','#f44a26','#00b14f','#00a7bc','#9a9da8'];
 
   let cards = [];
   let transactions = [];
   let activeCardId = null;
   let editingCardColor = 0;
+  let editingTxnId = null;
   let monthlyChart = null, categoryChart = null, appChart = null;
 
   const $ = (id) => document.getElementById(id);
@@ -634,6 +721,10 @@
       return { id, label: id.slice(7) || 'Khác', icon: '✳️' };
     }
     return CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length-1];
+  };
+  const getAppColor = (app) => {
+    const idx = APPS.indexOf(app);
+    return APP_COLORS[idx >= 0 ? idx : APP_COLORS.length-1];
   };
   const parseFormattedNumber = (str) => parseInt((str||'').replace(/\D/g,''), 10) || 0;
 
@@ -823,15 +914,25 @@
         <div class="modal-box" style="max-width:380px;">
           <h3 style="margin:0 0 4px;font-family:'Fraunces',serif;font-size:17px;color:var(--ink-900);">Đồng bộ nhiều thiết bị</h3>
           <p style="margin:0 0 14px;font-size:13px;color:var(--text-dim);line-height:1.5;">Đăng nhập bằng cùng một tài khoản trên mọi thiết bị để dữ liệu tự động khớp nhau.</p>
-          <div class="field" style="margin-bottom:10px;">
+          <div class="field" id="auth-email-field" style="margin-bottom:10px;">
             <label>Email</label>
-            <input type="email" id="auth-email" placeholder="ban@vidu.com">
+            <input type="email" id="auth-email" placeholder="ban@vidu.com" autocomplete="email">
           </div>
-          <div class="field" style="margin-bottom:12px;">
+          <div class="field" id="auth-password-field" style="margin-bottom:10px;">
             <label>Mật khẩu</label>
-            <input type="password" id="auth-password" placeholder="Tối thiểu 6 ký tự">
+            <div class="pwd-wrap">
+              <input type="password" id="auth-password" placeholder="Tối thiểu 6 ký tự" autocomplete="current-password">
+              <button type="button" class="pwd-toggle" id="auth-pwd-toggle" aria-label="Hiện mật khẩu" title="Hiện mật khẩu">
+                <svg id="auth-pwd-icon-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg id="auth-pwd-icon-hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A9.7 9.7 0 0 1 12 4c7 0 11 7 11 7a20.4 20.4 0 0 1-3.22 4.36M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
           </div>
-          <div id="auth-error" style="color:var(--rust);font-size:12.5px;margin-bottom:6px;display:none;"></div>
+          <label class="remember-row" for="auth-remember">
+            <input type="checkbox" id="auth-remember" checked>
+            Ghi nhớ đăng nhập trên thiết bị này
+          </label>
+          <div id="auth-error" class="field-error"><span>⚠</span><span id="auth-error-text"></span></div>
           <div class="modal-actions" style="justify-content:space-between;">
             <button class="btn ghost" id="auth-cancel">Đóng</button>
             <div style="display:flex; gap:8px;">
@@ -842,27 +943,67 @@
         </div>
       </div>`;
     const errEl = $('auth-error');
-    const showErr = (msg) => { errEl.textContent = msg; errEl.style.display = 'block'; };
+    const errTextEl = $('auth-error-text');
+    const showErr = (msg) => {
+      errTextEl.textContent = msg;
+      errEl.classList.add('show');
+      $('auth-password-field').classList.add('err');
+    };
+    const clearErr = () => {
+      errEl.classList.remove('show');
+      $('auth-email-field').classList.remove('err');
+      $('auth-password-field').classList.remove('err');
+    };
     const cleanup = () => { root.innerHTML = ''; };
     $('auth-cancel').addEventListener('click', cleanup);
     root.querySelector('.modal-overlay').addEventListener('click', (e) => {
       if(e.target.classList.contains('modal-overlay')) cleanup();
     });
+
+    // Show/hide password
+    const pwdInput = $('auth-password');
+    const pwdToggle = $('auth-pwd-toggle');
+    const iconShow = $('auth-pwd-icon-show');
+    const iconHide = $('auth-pwd-icon-hide');
+    pwdToggle.addEventListener('click', () => {
+      const isHidden = pwdInput.type === 'password';
+      pwdInput.type = isHidden ? 'text' : 'password';
+      iconShow.style.display = isHidden ? 'none' : '';
+      iconHide.style.display = isHidden ? '' : 'none';
+      pwdToggle.title = isHidden ? 'Ẩn mật khẩu' : 'Hiện mật khẩu';
+      pwdToggle.setAttribute('aria-label', pwdToggle.title);
+    });
+    [$('auth-email'), $('auth-password')].forEach(inp => {
+      inp.addEventListener('input', clearErr);
+      inp.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ $('auth-signin').click(); } });
+    });
+
+    const applyPersistence = async () => {
+      const remember = $('auth-remember').checked;
+      try{
+        await fbAuth.setPersistence(remember ? firebase.auth.Auth.Persistence.LOCAL : firebase.auth.Auth.Persistence.SESSION);
+      }catch(e){ /* ignore, falls back to default persistence */ }
+    };
+
     $('auth-signin').addEventListener('click', async () => {
+      clearErr();
       const email = $('auth-email').value.trim();
       const password = $('auth-password').value;
       if(!email || !password){ showErr('Nhập email và mật khẩu.'); return; }
       try{
+        await applyPersistence();
         await fbAuth.signInWithEmailAndPassword(email, password);
         cleanup();
       }catch(e){ showErr(translateAuthError(e)); }
     });
     $('auth-signup').addEventListener('click', async () => {
+      clearErr();
       const email = $('auth-email').value.trim();
       const password = $('auth-password').value;
       if(!email || !password){ showErr('Nhập email và mật khẩu.'); return; }
       if(password.length < 6){ showErr('Mật khẩu cần tối thiểu 6 ký tự.'); return; }
       try{
+        await applyPersistence();
         await fbAuth.createUserWithEmailAndPassword(email, password);
         cleanup();
       }catch(e){ showErr(translateAuthError(e)); }
@@ -874,7 +1015,10 @@
     const map = {
       'auth/invalid-email': 'Email không hợp lệ.',
       'auth/user-not-found': 'Không tìm thấy tài khoản với email này.',
-      'auth/wrong-password': 'Sai mật khẩu.',
+      'auth/wrong-password': 'Sai mật khẩu. Vui lòng kiểm tra lại.',
+      'auth/invalid-credential': 'Sai email hoặc mật khẩu. Vui lòng kiểm tra lại.',
+      'auth/invalid-login-credentials': 'Sai email hoặc mật khẩu. Vui lòng kiểm tra lại.',
+      'auth/too-many-requests': 'Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau ít phút.',
       'auth/email-already-in-use': 'Email này đã được đăng ký, hãy đăng nhập.',
       'auth/weak-password': 'Mật khẩu quá yếu (tối thiểu 6 ký tự).',
       'auth/network-request-failed': 'Không có kết nối mạng.'
@@ -1094,10 +1238,11 @@
     const filteredTxns = chartMonthFilter === 'all'
       ? allTxns
       : allTxns.filter(t => t.date.slice(0,7) === chartMonthFilter);
+    const monthlyTxns = chartMonthFilter === 'all' ? allTxns : filteredTxns;
 
-    // ----- Monthly (always shows the full trend, unaffected by the filter) -----
+    // ----- Monthly (respects the shared month filter) -----
     const monthMap = {};
-    allTxns.forEach(t => {
+    monthlyTxns.forEach(t => {
       const key = t.date.slice(0,7);
       if(!monthMap[key]) monthMap[key] = { paid:0, unpaid:0 };
       monthMap[key][t.paid ? 'paid' : 'unpaid'] += t.amount;
@@ -1113,8 +1258,8 @@
       data:{
         labels: monthLabels,
         datasets:[
-          { label:'Đã thanh toán', data:paidData, backgroundColor:'#4a7357', borderRadius:5, stack:'s', maxBarThickness:46 },
-          { label:'Chưa thanh toán', data:unpaidData, backgroundColor:'#a24a30', borderRadius:5, stack:'s', maxBarThickness:46 }
+          { label:'Đã thanh toán', data:paidData, backgroundColor:'#4a7357', borderRadius:5, maxBarThickness:46 },
+          { label:'Chưa thanh toán', data:unpaidData, backgroundColor:'#a24a30', borderRadius:5, maxBarThickness:46 }
         ]
       },
       options:{
@@ -1126,8 +1271,8 @@
           tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${fmtVND(ctx.parsed.y)}` } }
         },
         scales:{
-          x:{ stacked:true, ticks:{ color:'#6b6f80', font:{ family:'IBM Plex Mono', size:11 } }, grid:{ display:false } },
-          y:{ stacked:true, ticks:{ color:'#6b6f80', font:{ size:10 }, callback:v => (v/1000000).toLocaleString('vi-VN') + 'tr' }, grid:{ color:'#e7e3d5' } }
+          x:{ stacked:false, ticks:{ color:'#6b6f80', font:{ family:'IBM Plex Mono', size:11 } }, grid:{ display:false } },
+          y:{ stacked:false, ticks:{ color:'#6b6f80', font:{ size:10 }, callback:v => (v/1000000).toLocaleString('vi-VN') + 'tr' }, grid:{ color:'#e7e3d5' } }
         }
       }
     });
@@ -1216,6 +1361,8 @@
   }
 
   let ledgerMonthFilter = 'all';
+  let ledgerDateFilterMode = 'all'; // 'all', 'month', 'date'
+  let ledgerDateFilterValue = ''; // month: 'YYYY-MM', date: 'YYYY-MM-DD'
 
   function populateLedgerMonthFilter(allTxns){
     const sel = $('ledger-month-filter');
@@ -1235,8 +1382,10 @@
 
   function renderLedger(){
     const ledger = $('ledger');
+    const filterRow = $('ledger-filter-row');
     const card = cards.find(c => c.id === activeCardId);
     if(!card){
+      filterRow.classList.add('hidden');
       $('ledger-month-filter').classList.add('hidden');
       ledger.innerHTML = '<div class="empty-state">Hãy thêm một thẻ để bắt đầu ghi chép chi tiêu.</div>';
       return;
@@ -1244,18 +1393,41 @@
     const allTxns = transactions.filter(t => t.cardId === activeCardId);
 
     if(allTxns.length === 0){
+      filterRow.classList.add('hidden');
       $('ledger-month-filter').classList.add('hidden');
       ledger.innerHTML = '<div class="empty-state">Chưa có giao dịch nào cho thẻ này.</div>';
       return;
     }
-    $('ledger-month-filter').classList.remove('hidden');
-    populateLedgerMonthFilter(allTxns);
+    
+    filterRow.classList.remove('hidden');
+    $('ledger-month-filter').classList.add('hidden');
+    
+    // Populate month select for the filter
+    const months = Array.from(new Set(allTxns.map(t => t.date.slice(0,7)))).sort().reverse();
+    const monthSelect = $('ledger-month-select');
+    monthSelect.innerHTML = '<option value="">Chọn tháng</option>' + months.map(k => {
+      const [y,m] = k.split('-');
+      return `<option value="${k}">${MONTH_NAMES[parseInt(m,10)-1]} ${y}</option>`;
+    }).join('');
 
-    const txns = (ledgerMonthFilter === 'all' ? allTxns : allTxns.filter(t => t.date.slice(0,7) === ledgerMonthFilter))
-      .sort((a,b) => b.date.localeCompare(a.date));
+    // Apply date filter
+    let filteredTxns = [...allTxns];
+    if(ledgerDateFilterMode === 'month' && ledgerDateFilterValue){
+      filteredTxns = filteredTxns.filter(t => t.date.slice(0,7) === ledgerDateFilterValue);
+    } else if(ledgerDateFilterMode === 'date' && ledgerDateFilterValue){
+      filteredTxns = filteredTxns.filter(t => t.date === ledgerDateFilterValue);
+    }
+    
+    const txns = filteredTxns.sort((a,b) => b.date.localeCompare(a.date));
 
     if(txns.length === 0){
-      ledger.innerHTML = '<div class="empty-state">Không có giao dịch trong tháng này.</div>';
+      if(ledgerDateFilterMode === 'month'){
+        ledger.innerHTML = '<div class="empty-state">Không có giao dịch trong tháng này.</div>';
+      } else if(ledgerDateFilterMode === 'date'){
+        ledger.innerHTML = '<div class="empty-state">Không có giao dịch vào ngày này.</div>';
+      } else {
+        ledger.innerHTML = '<div class="empty-state">Không có giao dịch nào.</div>';
+      }
       return;
     }
 
@@ -1283,14 +1455,20 @@
                 <div class="txn-desc">${escapeHtml(t.desc)}</div>
                 <div class="txn-meta">
                   <span class="tag cat">${cat.icon} ${cat.label}</span>
-                  ${t.app ? `<span class="tag app">${escapeHtml(t.app)}</span>` : ''}
+                  ${t.app ? `<span class="tag app" style="background:${getAppColor(t.app)}; color:#fff; border:none;">${escapeHtml(t.app)}</span>` : ''}
                 </div>
               </div>
             </div>
             <div class="txn-right">
               <div class="txn-amount">${fmtVND(t.amount)}</div>
               <div class="status-pill ${t.paid ? 'paid' : 'unpaid'}" data-toggle="${t.id}">${t.paid ? 'Đã thanh toán' : 'Chưa thanh toán'}</div>
-              <button class="txn-del" data-del="${t.id}">×</button>
+              <div class="txn-menu-wrapper" style="position:relative;">
+                <button class="txn-menu-btn" data-menu="${t.id}" title="Thêm tùy chọn">⋮</button>
+                <div class="txn-menu-dropdown" data-menu-dropdown="${t.id}">
+                  <button class="txn-menu-item" data-edit="${t.id}">✎ Chỉnh sửa</button>
+                  <button class="txn-menu-item danger" data-del="${t.id}">✕ Xóa giao dịch</button>
+                </div>
+              </div>
             </div>
           </div>
         `;
@@ -1299,6 +1477,7 @@
     });
     ledger.innerHTML = html;
 
+    // Toggle status pill
     ledger.querySelectorAll('[data-toggle]').forEach(el => {
       el.addEventListener('click', async () => {
         const id = el.getAttribute('data-toggle');
@@ -1308,10 +1487,46 @@
         render();
       });
     });
+
+    // Menu button toggle
+    ledger.querySelectorAll('[data-menu]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const txnId = btn.getAttribute('data-menu');
+        const dropdown = ledger.querySelector(`[data-menu-dropdown="${txnId}"]`);
+        if(dropdown){
+          dropdown.classList.toggle('open');
+        }
+      });
+    });
+
+    // Close menu when clicking elsewhere
+    document.addEventListener('click', () => {
+      ledger.querySelectorAll('.txn-menu-dropdown.open').forEach(el => {
+        el.classList.remove('open');
+      });
+    });
+
+    // Edit button
+    ledger.querySelectorAll('[data-edit]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = el.getAttribute('data-edit');
+        const txn = transactions.find(x => x.id === id);
+        if(txn) openTxnForm(txn);
+      });
+    });
+
+    // Delete button - with confirmation
     ledger.querySelectorAll('[data-del]').forEach(el => {
-      el.addEventListener('click', async () => {
+      el.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         const id = el.getAttribute('data-del');
-        const ok = await showConfirm('Xóa giao dịch này?', 'Xóa');
+        const txn = transactions.find(x => x.id === id);
+        const txnDesc = txn ? `"${escapeHtml(txn.desc)}"` : 'giao dịch này';
+        const ok = await showConfirm(`Xóa ${txnDesc}?`, 'Xóa');
         if(!ok) return;
         transactions = transactions.filter(x => x.id !== id);
         await saveTransactions();
@@ -1372,12 +1587,36 @@
 
   // Transaction form
   function resetTxnForm(){
+    editingTxnId = null;
     $('txn-form-panel').classList.add('hidden');
     ['tf-date','tf-desc','tf-amount','tf-category-custom','tf-app-custom'].forEach(id => $(id).value = '');
     $('tf-category-custom').classList.add('hidden');
     $('tf-app-custom').classList.add('hidden');
     $('tf-category').selectedIndex = 0;
     $('tf-app').selectedIndex = 0;
+    const heading = $('txn-form-panel').querySelector('h3');
+    if(heading) heading.textContent = 'Giao dịch mới';
+    $('tf-save').textContent = 'Lưu giao dịch';
+  }
+
+  function openTxnForm(txn){
+    editingTxnId = txn.id;
+    $('txn-form-panel').classList.remove('hidden');
+    $('tf-date').value = txn.date;
+    $('tf-desc').value = txn.desc;
+    $('tf-amount').value = txn.amount.toLocaleString('vi-VN');
+    const isCustomCat = txn.category && txn.category.startsWith('custom:');
+    $('tf-category').value = isCustomCat ? 'khac' : txn.category;
+    $('tf-category-custom').classList.toggle('hidden', !isCustomCat);
+    if(isCustomCat) $('tf-category-custom').value = txn.category.slice(7);
+    const isCustomApp = !APPS.includes(txn.app);
+    $('tf-app').value = isCustomApp ? 'Khác' : txn.app;
+    $('tf-app-custom').classList.toggle('hidden', !isCustomApp);
+    if(isCustomApp) $('tf-app-custom').value = txn.app;
+    const heading = $('txn-form-panel').querySelector('h3');
+    if(heading) heading.textContent = 'Chỉnh sửa giao dịch';
+    $('tf-save').textContent = 'Cập nhật';
+    $('tf-desc').focus();
   }
 
   $('tf-category').addEventListener('change', () => {
@@ -1401,8 +1640,44 @@
     renderLedger();
   });
 
+  // Date filter for ledger
+  $('ledger-date-filter').addEventListener('change', () => {
+    const mode = $('ledger-date-filter').value;
+    ledgerDateFilterMode = mode;
+    ledgerDateFilterValue = '';
+    const monthSelect = $('ledger-month-select');
+    const dateSelect = $('ledger-date-select');
+    
+    if(mode === 'month'){
+      monthSelect.classList.remove('hidden');
+      dateSelect.classList.add('hidden');
+      monthSelect.value = '';
+      monthSelect.focus();
+    } else if(mode === 'date'){
+      monthSelect.classList.add('hidden');
+      dateSelect.classList.remove('hidden');
+      dateSelect.value = '';
+      dateSelect.focus();
+    } else {
+      monthSelect.classList.add('hidden');
+      dateSelect.classList.add('hidden');
+    }
+    renderLedger();
+  });
+
+  $('ledger-month-select').addEventListener('change', () => {
+    ledgerDateFilterValue = $('ledger-month-select').value;
+    renderLedger();
+  });
+
+  $('ledger-date-select').addEventListener('change', () => {
+    ledgerDateFilterValue = $('ledger-date-select').value;
+    renderLedger();
+  });
+
   $('show-txn-form').addEventListener('click', async () => {
     if(!activeCardId){ await showAlert('Hãy thêm một thẻ trước khi ghi giao dịch.'); return; }
+    resetTxnForm();
     $('txn-form-panel').classList.remove('hidden');
     $('tf-date').value = new Date().toISOString().slice(0,10);
     $('tf-desc').focus();
@@ -1421,7 +1696,18 @@
       ? ($('tf-app-custom').value.trim() || 'Khác')
       : appSelectVal;
     if(!date || !desc || amount <= 0){ return; }
-    transactions.push({ id: uid(), cardId: activeCardId, date, desc, amount, paid: false, category, app });
+    if(editingTxnId){
+      const existing = transactions.find(t => t.id === editingTxnId);
+      if(existing){
+        existing.date = date;
+        existing.desc = desc;
+        existing.amount = amount;
+        existing.category = category;
+        existing.app = app;
+      }
+    }else{
+      transactions.push({ id: uid(), cardId: activeCardId, date, desc, amount, paid: false, category, app });
+    }
     await saveTransactions();
     resetTxnForm();
     render();
